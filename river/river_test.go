@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,8 +16,10 @@ import (
 
 var myAddr = flag.String("my_addr", "127.0.0.1:3306", "MySQL addr")
 var esAddr = flag.String("es_addr", "127.0.0.1:9200", "Elasticsearch addr")
-var dateTimeStr = time.Now().Format(mysql.TimeFormat)
-var dateStr = time.Now().Format(mysqlDateFormat)
+var dateNow = time.Now()
+var dateTimeStr = dateNow.Format(mysql.TimeFormat)
+var dateStr = dateNow.Format(mysqlDateFormat)
+var unixTime = strconv.FormatInt(dateNow.Unix(), 10)
 
 func Test(t *testing.T) {
 	TestingT(t)
@@ -48,6 +51,7 @@ func (s *riverTestSuite) SetUpSuite(c *C) {
 					tbit BIT(1) default 1,
 					tdatetime DATETIME DEFAULT NULL,
 					tdate DATE DEFAULT NULL,
+					unixstring VARCHAR(16) DEFAULT NULL,
 					ip INT UNSIGNED DEFAULT 0,
 					PRIMARY KEY(id)) ENGINE=INNODB;
     `
@@ -98,7 +102,7 @@ func (s *riverTestSuite) SetUpSuite(c *C) {
 			Table:        "test_river",
 			Index:        "river",
 			Type:         "river",
-			FieldMapping: map[string]string{"title": "es_title", "mylist": "es_mylist,list", "mydate": ",date"},
+			FieldMapping: map[string]string{"title": "es_title", "mylist": "es_mylist,list", "mydate": ",date", "unixstring": ",date"},
 		},
 
 		&Rule{Schema: "test",
@@ -167,6 +171,7 @@ parent = "pid"
     title = "es_title"
     mylist = "es_mylist,list"
     mydate = ",date"
+		unixstring = ",date"
 
 
 [[rule]]
@@ -230,6 +235,8 @@ func (s *riverTestSuite) testPrepareData(c *C) {
 
 	s.testExecute(c, "SET sql_mode = '';") // clear sql_mode to allow empty dates
 	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, tdatetime, mydate, tdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 20, "test empty datetime", "date test 20", "e1", "a,b", "0000-00-00 00:00:00", 0, "0000-00-00")
+
+	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, unixstring) VALUES (?, ?, ?, ?, ?, ?)", 21, "test empty datetime", "date test 21", "e1", "a,b", unixTime)
 
 	// test ip
 	s.testExecute(c, "INSERT test_river (id, ip) VALUES (?, ?)", 17, 0)
@@ -375,6 +382,10 @@ func (s *riverTestSuite) TestRiver(c *C) {
 	c.Assert(r.Found, IsTrue)
 	c.Assert(r.Source["tdate"], Equals, nil)
 	c.Assert(r.Source["tdatetime"], Equals, nil)
+
+	r = s.testElasticGet(c, "21")
+	c.Assert(r.Found, IsTrue)
+	c.Assert(r.Source["unixstring"], Equals, dateNow.Format(time.RFC3339))
 
 	// test ip
 	r = s.testElasticGet(c, "17")
