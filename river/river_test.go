@@ -234,7 +234,7 @@ func (s *riverTestSuite) testPrepareData(c *C) {
 	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, tdatetime, mydate, tdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 16, "test datetime", "hello go 16", "e1", "a,b", dateTimeStr, 1458131094, dateStr)
 
 	s.testExecute(c, "SET sql_mode = '';") // clear sql_mode to allow empty dates
-	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, tdatetime, mydate, tdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 20, "test empty datetime", "date test 20", "e1", "a,b", "0000-00-00 00:00:00", 0, "0000-00-00")
+	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, tdatetime, mydate, tdate, unixstring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 20, "test empty datetime", "date test 20", "e1", "a,b", "0000-00-00 00:00:00", 0, "0000-00-00", "")
 
 	s.testExecute(c, "INSERT INTO test_river (id, title, content, tenum, tset, unixstring) VALUES (?, ?, ?, ?, ?, ?)", 21, "test empty datetime", "date test 21", "e1", "a,b", unixTime)
 
@@ -382,6 +382,7 @@ func (s *riverTestSuite) TestRiver(c *C) {
 	c.Assert(r.Found, IsTrue)
 	c.Assert(r.Source["tdate"], Equals, nil)
 	c.Assert(r.Source["tdatetime"], Equals, nil)
+	c.Assert(r.Source["unixstring"], Equals, nil)
 
 	r = s.testElasticGet(c, "21")
 	c.Assert(r.Found, IsTrue)
